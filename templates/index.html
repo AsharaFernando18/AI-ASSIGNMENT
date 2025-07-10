@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIFAR-10 CNN Super UI | AI Image Classifier</title>
+    
+    <!-- Modern CSS Framework -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .drop-zone {
+            border: 3px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        
+        .drop-zone.dragover {
+            border-color: #4299e1;
+            background-color: #ebf8ff;
+            transform: scale(1.02);
+        }
+        
+        .prediction-card {
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        
+        .prediction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .emoji-bounce {
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .confidence-bar {
+            transition: width 1s ease-in-out;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <!-- Navigation -->
+    <nav class="glass-effect text-white p-4 mb-8">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-brain text-3xl"></i>
+                <div>
+                    <h1 class="text-2xl font-bold">CIFAR-10 CNN</h1>
+                    <p class="text-sm opacity-80">AI Image Classifier</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm">� English Interface</span>
+                <button onclick="showModelInfo()" class="bg-white bg-opacity-20 px-4 py-2 rounded-lg hover:bg-opacity-30 transition">
+                    <i class="fas fa-info-circle mr-2"></i>Model Info
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4">
+        
+        <!-- Header Section -->
+        <div class="text-center text-white mb-12">
+            <h2 class="text-5xl font-bold mb-4">🧠 AI Image Recognition</h2>
+            <p class="text-xl opacity-90 mb-6">Drop your image and watch AI identify it instantly!</p>
+            <p class="text-lg opacity-75">Professional CIFAR-10 Classification System ✨</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            
+            <!-- Upload Section -->
+            <div class="glass-effect rounded-2xl p-8">
+                <h3 class="text-2xl font-bold text-white mb-6 text-center">
+                    <i class="fas fa-cloud-upload-alt mr-3"></i>Upload Your Image
+                </h3>
+                
+                <!-- Drop Zone -->
+                <div id="dropZone" class="drop-zone rounded-xl p-12 text-center cursor-pointer mb-6">
+                    <div id="dropContent">
+                        <i class="fas fa-image text-6xl text-gray-400 mb-4"></i>
+                        <p class="text-xl text-gray-600 mb-2">Drag & Drop your image here</p>
+                        <p class="text-gray-500 mb-4">or click to browse</p>
+                        <p class="text-sm text-gray-400">Supports: JPG, PNG, JPEG</p>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                </div>
+                
+                <!-- Sample Images -->
+                <div class="mb-6">
+                    <h4 class="text-white text-lg mb-3">📚 Try Sample Images:</h4>
+                    <div id="sampleImages" class="grid grid-cols-5 gap-2">
+                        <!-- Sample images will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Upload Button -->
+                <button id="predictBtn" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-6 rounded-lg transition duration-300">
+                    <i class="fas fa-magic mr-2"></i>Predict Image
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div class="glass-effect rounded-2xl p-8">
+                <h3 class="text-2xl font-bold text-white mb-6 text-center">
+                    <i class="fas fa-chart-bar mr-3"></i>AI Prediction Results
+                </h3>
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden text-center py-12">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-white text-lg">AI is analyzing your image...</p>
+                    <p class="text-white opacity-75">Please wait for results...</p>
+                </div>
+                
+                <!-- Results Display -->
+                <div id="resultsDisplay" class="hidden">
+                    <!-- Main Prediction -->
+                    <div id="mainPrediction" class="text-center mb-8 p-6 bg-white bg-opacity-10 rounded-xl">
+                        <div class="text-6xl mb-3 emoji-bounce" id="predictionEmoji">🤖</div>
+                        <h4 class="text-2xl font-bold text-white mb-2" id="predictionClass">Analyzing...</h4>
+                        <p class="text-lg text-white opacity-75 mb-3" id="predictionClassSubtext">AI Classification Result</p>
+                        <div class="bg-white bg-opacity-20 rounded-full h-4 mb-2">
+                            <div id="confidenceBar" class="confidence-bar bg-green-400 h-4 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <p class="text-white font-semibold" id="confidenceText">0%</p>
+                    </div>
+                    
+                    <!-- All Predictions -->
+                    <div id="allPredictions" class="space-y-3">
+                        <!-- Prediction items will be inserted here -->
+                    </div>
+                    
+                    <!-- Chart Container -->
+                    <div class="mt-8">
+                        <canvas id="predictionChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Welcome State -->
+                <div id="welcomeState" class="text-center py-12">
+                    <i class="fas fa-robot text-6xl text-white opacity-50 mb-4"></i>
+                    <p class="text-white text-lg mb-2">Welcome to AI Image Classifier!</p>
+                    <p class="text-white opacity-75 mb-4">Upload an image to see the magic ✨</p>
+                    <p class="text-white opacity-60">Professional CIFAR-10 CNN Classification</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Section -->
+        <div class="mt-12 grid md:grid-cols-4 gap-6">
+            <div class="glass-effect rounded-xl p-6 text-center text-white">
+                <i class="fas fa-images text-3xl mb-3 text-blue-300"></i>
+                <h4 class="text-2xl font-bold">10</h4>
+                <p class="opacity-75">Classes</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center text-white">
+                <i class="fas fa-database text-3xl mb-3 text-green-300"></i>
+                <h4 class="text-2xl font-bold">60K</h4>
+                <p class="opacity-75">Training Images</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center text-white">
+                <i class="fas fa-brain text-3xl mb-3 text-purple-300"></i>
+                <h4 class="text-2xl font-bold">CNN</h4>
+                <p class="opacity-75">Deep Learning</p>
+            </div>
+            <div class="glass-effect rounded-xl p-6 text-center text-white">
+                <i class="fas fa-bolt text-3xl mb-3 text-yellow-300"></i>
+                <h4 class="text-2xl font-bold">85%</h4>
+                <p class="opacity-75">Accuracy</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Model Info -->
+    <div id="modelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass-effect rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white">🧠 Model Information</h3>
+                <button onclick="closeModal()" class="text-white hover:text-gray-300">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modelInfoContent" class="text-white">
+                Loading model information...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedImage = null;
+        let predictionChart = null;
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDropZone();
+            loadSampleImages();
+        });
+
+        // Setup drag and drop functionality
+        function setupDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            const imageInput = document.getElementById('imageInput');
+
+            dropZone.addEventListener('click', () => imageInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleImageSelect(files[0]);
+                }
+            });
+            
+            imageInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageSelect(e.target.files[0]);
+                }
+            });
+        }
+
+        // Handle image selection
+        function handleImageSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            selectedImage = file;
+            
+            // Display selected image
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dropContent = document.getElementById('dropContent');
+                dropContent.innerHTML = `
+                    <img src="${e.target.result}" class="max-w-full max-h-48 mx-auto rounded-lg mb-4 shadow-lg">
+                    <p class="text-green-600 font-semibold">✅ Image ready for prediction</p>
+                    <p class="text-sm text-gray-500">Click predict to analyze</p>
+                `;
+            };
+            reader.readAsDataURL(file);
+            
+            // Enable predict button
+            document.getElementById('predictBtn').disabled = false;
+            document.getElementById('predictBtn').onclick = predictImage;
+        }
+
+        // Load sample images
+        async function loadSampleImages() {
+            try {
+                const response = await fetch('/sample-images');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('sampleImages');
+                    container.innerHTML = data.samples.map(sample => `
+                        <div class="cursor-pointer hover:scale-105 transition transform" 
+                             onclick="useSampleImage('${sample.image}', '${sample.class}')">
+                            <img src="${sample.image}" class="w-full h-16 object-cover rounded-lg shadow-md" 
+                                 title="${sample.emoji} ${sample.class}">
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load sample images:', error);
+            }
+        }
+
+        // Use sample image
+        function useSampleImage(imageSrc, className) {
+            // Convert base64 to file
+            fetch(imageSrc)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], `${className}.png`, { type: 'image/png' });
+                    handleImageSelect(file);
+                });
+        }
+
+        // Predict image
+        async function predictImage() {
+            if (!selectedImage) return;
+            
+            // Show loading state
+            document.getElementById('welcomeState').classList.add('hidden');
+            document.getElementById('resultsDisplay').classList.add('hidden');
+            document.getElementById('loadingState').classList.remove('hidden');
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedImage);
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('welcomeState').classList.remove('hidden');
+            }
+        }
+
+        // Display prediction results
+        function displayResults(data) {
+            // Hide loading, show results
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('resultsDisplay').classList.remove('hidden');
+            
+            // Update main prediction
+            document.getElementById('predictionEmoji').textContent = data.predicted_emoji;
+            document.getElementById('predictionClass').textContent = data.predicted_class;
+            document.getElementById('predictionClassSubtext').textContent = `${data.predicted_class} Classification`;
+            document.getElementById('confidenceText').textContent = `${data.confidence.toFixed(1)}%`;
+            
+            // Animate confidence bar
+            setTimeout(() => {
+                document.getElementById('confidenceBar').style.width = `${data.confidence}%`;
+            }, 500);
+            
+            // Display all predictions
+            const container = document.getElementById('allPredictions');
+            container.innerHTML = data.all_predictions.slice(0, 5).map((pred, index) => `
+                <div class="prediction-card flex items-center justify-between p-3 rounded-lg ${pred.is_predicted ? 'bg-green-500 bg-opacity-20' : 'bg-white bg-opacity-10'}">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">${pred.emoji}</span>
+                        <div>
+                            <p class="text-white font-semibold">${pred.class}</p>
+                            <p class="text-white opacity-75 text-sm">Confidence Level</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-white font-bold">${pred.confidence.toFixed(1)}%</p>
+                        ${pred.is_predicted ? '<i class="fas fa-crown text-yellow-400 ml-2"></i>' : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Create chart
+            createPredictionChart(data.chart_data);
+        }
+
+        // Create prediction chart
+        function createPredictionChart(chartData) {
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            
+            if (predictionChart) {
+                predictionChart.destroy();
+            }
+            
+            predictionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.map(d => d.class),
+                    datasets: [{
+                        label: 'Confidence %',
+                        data: chartData.map(d => d.confidence),
+                        backgroundColor: chartData.map(d => d.color),
+                        borderColor: chartData.map(d => d.color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Show model info modal
+        async function showModelInfo() {
+            document.getElementById('modelModal').classList.remove('hidden');
+            document.getElementById('modelModal').classList.add('flex');
+            
+            try {
+                const response = await fetch('/model-info');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('modelInfoContent').innerHTML = `
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-white bg-opacity-10 p-4 rounded-lg">
+                                    <h4 class="font-bold mb-2">📊 Parameters</h4>
+                                    <p>Total: ${data.total_parameters.toLocaleString()}</p>
+                                    <p>Trainable: ${data.trainable_parameters.toLocaleString()}</p>
+                                </div>
+                                <div class="bg-white bg-opacity-10 p-4 rounded-lg">
+                                    <h4 class="font-bold mb-2">🏗️ Architecture</h4>
+                                    <p>Layers: ${data.total_layers}</p>
+                                    <p>Classes: ${data.classes}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white bg-opacity-10 p-4 rounded-lg">
+                                <h4 class="font-bold mb-2">🎯 Classes</h4>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    ${data.class_names.map((name, i) => `
+                                        <div>${name}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white bg-opacity-10 p-4 rounded-lg">
+                                <h4 class="font-bold mb-2">🏗️ Layer Details</h4>
+                                <div class="max-h-40 overflow-y-auto text-sm space-y-1">
+                                    ${data.layers.map(layer => `
+                                        <div class="flex justify-between">
+                                            <span>${layer.index}. ${layer.name}</span>
+                                            <span class="opacity-75">${layer.output_shape}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('modelInfoContent').innerHTML = `
+                    <p class="text-red-300">Error loading model information: ${error.message}</p>
+                `;
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modelModal').classList.add('hidden');
+            document.getElementById('modelModal').classList.remove('flex');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('modelModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
